@@ -1,5 +1,9 @@
 package com.example.session.controller;
 
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,7 +18,9 @@ import com.example.session.model.UserCredentails;
 import com.example.session.model.UserDetails;
 import com.example.session.repository.UsercredentailsRepo;
 
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
 @RestController
@@ -36,26 +42,40 @@ public class SessionController implements SessionControllerAPI {
 
 		HttpSession session = request.getSession();
 
-		String session_userUID = (String) session.getAttribute(session.getId() + "USERUID_CACHE");
+//		String session_userUID = (String) session.getAttribute(session.getId() + "USERUID_CACHE");
 
 		String userUID_cache = (String) cacheService.getCache(session.getId(), "USERUID_CACHE");
 
-		if (userUID.equals(session_userUID) || userUID.equals(userUID_cache)) {
+		if (userUID.equals(userUID_cache)) {
 			response = new ResponseEntity<String>("user login successfully : " + userUID_cache, HttpStatus.ACCEPTED);
 		} else {
 			response = new ResponseEntity<String>("userUID not match with cache : " + userUID_cache, HttpStatus.OK);
 		}
 		System.out.println("userUID input : " + userUID);
 		System.out.println("userUID cache : " + userUID_cache);
-		System.out.println("session userUID cache : " + session_userUID);
+//		System.out.println("session userUID cache : " + session_userUID);
 
 		return response;
 	}
 
 	@Override
-	public ResponseEntity<Object> getLogin(HttpServletRequest request, UserCredentails userCredentails) {
+	public ResponseEntity<Object> getLogin(HttpServletRequest request, HttpServletResponse servletResponse,
+			UserCredentails userCredentails) {
 
-		HttpSession session = request.getSession();
+		HttpSession session = request.getSession(true);
+		Cookie[] cookies = request.getCookies();
+		Optional<Cookie> cookie = Arrays.asList(request.getCookies()).stream()
+				.filter(c -> "X-KeepAlive".equals(c.getName())).findAny();
+		Instant instant = Instant.now();
+		Instant timeExtended = instant.plusSeconds(1800);
+		if (cookie.isEmpty()) {
+			Cookie cookieValue = new Cookie("X-KeepAlive", timeExtended.toString());
+			cookieValue.setMaxAge(-1);
+			cookieValue.setHttpOnly(false);
+			cookieValue.setPath("/");
+			servletResponse.addCookie(cookieValue);
+		}
+
 		ResponseEntity<Object> sessionResponse = null;
 
 		String loginId = userCredentails.getLoginId();
@@ -76,7 +96,7 @@ public class SessionController implements SessionControllerAPI {
 			cacheService.setCache(session.getId(), "USERUID_CACHE", response.getUserUID());
 			cacheService.setCache(session.getId(), "LOGINID_CACHE", response.getLoginId());
 
-			session.setAttribute(session.getId() + "USERUID_CACHE", response.getUserUID());
+//			session.setAttribute(session.getId() + "USERUID_CACHE", response.getUserUID());
 
 			sessionResponse = new ResponseEntity<Object>(response, HttpStatus.OK);
 		} else {
