@@ -1,5 +1,9 @@
 package com.example.session.controller;
 
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,7 +18,9 @@ import com.example.session.model.UserCredentails;
 import com.example.session.model.UserDetails;
 import com.example.session.repository.UsercredentailsRepo;
 
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
 @RestController
@@ -53,9 +59,23 @@ public class SessionController implements SessionControllerAPI {
 	}
 
 	@Override
-	public ResponseEntity<Object> getLogin(HttpServletRequest request, UserCredentails userCredentails) {
+	public ResponseEntity<Object> getLogin(HttpServletRequest request, HttpServletResponse servletResponse,
+			UserCredentails userCredentails) {
 
-		HttpSession session = request.getSession();
+		HttpSession session = request.getSession(true);
+		Cookie[] cookies = request.getCookies();
+		Optional<Cookie> cookie = Arrays.asList(request.getCookies()).stream()
+				.filter(c -> "X-KeepAlive".equals(c.getName())).findAny();
+		Instant instant = Instant.now();
+		Instant timeExtended = instant.plusSeconds(1800);
+		if (cookie.isEmpty()) {
+			Cookie cookieValue = new Cookie("X-KeepAlive", timeExtended.toString());
+			cookieValue.setMaxAge(-1);
+			cookieValue.setHttpOnly(false);
+			cookieValue.setPath("/");
+			servletResponse.addCookie(cookieValue);
+		}
+
 		ResponseEntity<Object> sessionResponse = null;
 
 		String loginId = userCredentails.getLoginId();

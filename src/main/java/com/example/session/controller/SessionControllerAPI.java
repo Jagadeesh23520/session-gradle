@@ -11,12 +11,13 @@ import com.example.session.model.UserCredentails;
 import com.example.session.model.UserDetails;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 @RequestMapping("/v1")
 public interface SessionControllerAPI {
 
 	@PostMapping(value = "/login")
-	public ResponseEntity<Object> getLogin(HttpServletRequest request, @RequestBody UserCredentails userCredentails);
+	public ResponseEntity<Object> getLogin(HttpServletRequest request,HttpServletResponse response, @RequestBody UserCredentails userCredentails);
 
 	@PostMapping(value = "/register")
 	public ResponseEntity<Object> createUser(HttpServletRequest request, @RequestBody UserDetails userDetails);
